@@ -19,12 +19,6 @@ Reads data from "data.txt" and prints it.
 using namespace std;
 
 /**************************************************
-** global functions, and variables
-**************************************************/
-
-void input ();
-
-/**************************************************
 ** Car class
 **************************************************/
 class Car
@@ -37,21 +31,74 @@ private:
 	string destination;
 public:
 	Car () { setup ("", 0, "other", false, "NONE"); } //default constructor
-	Car (const Car *CarObj) { setup (CarObj->reportingMark, CarObj->carNumber, CarObj->kind, CarObj->loaded, CarObj->destination); } //copy constructor
+	Car (const Car &CarObj) { setup (CarObj.reportingMark, CarObj.carNumber, CarObj.kind, CarObj.loaded, CarObj.destination); } //copy constructor
 	Car (string reportingMarkInit, int carNumberInit, string kindInit, bool loadedInit, string destinationInit) { setup (reportingMarkInit, carNumberInit, kindInit, loadedInit, destinationInit); } //other constructor
 	~Car () {} // destructor
 	void setup (string reportingMarkInit, int carNumberInit, string kindInit, bool loadedInit, string destinationInit);
 	void output ();
-	friend bool Car::operator==(const Car CarObj1, const Car CarObj2)
-	{
-		if (CarObj1.reportingMark == CarObj2.reportingMark && CarObj1.carNumber == CarObj2.carNumber&& CarObj1.kind == CarObj2.kind&& CarObj1.loaded == CarObj2.loaded&& CarObj1.destination == CarObj2.destination) { return true; }
-		return false;
-	}
+	Car & Car::operator=(const Car & carB);
 };
+
+/**************************************************
+** StringOfCars class
+**************************************************/
+
+class StringOfCars
+{
+private:
+	Car *carArray;
+	static const int ARRAY_SIZE = 10;
+	int carCount;
+public:
+	StringOfCars () //default constructor
+	{
+		carArray = new Car[ARRAY_SIZE];
+		carCount = 0;
+	}
+	StringOfCars (const StringOfCars &StringOfCarsObj)  //copy constructor
+	{
+		carArray = new Car[ARRAY_SIZE];
+		for (int i; i < ARRAY_SIZE; i++)
+		{
+			carArray[i] = Car (StringOfCarsObj.carArray[i]);
+		}
+		carCount = StringOfCarsObj.carCount;
+	}
+	~StringOfCars () { delete[] carArray; } // destructor
+
+	void output ();
+	void push (Car &CarObj);
+	void pop (Car &CarObj);
+};
+
+/**************************************************
+** global functions, and variables
+**************************************************/
+
+void input (StringOfCars & StringOfCarsObj);
 
 int main ()
 {
-	input ();
+	// Test the Car operator=   function. 
+	cout << "TEST 1" << endl;
+	Car car1 ("SP", 34567, "business", true, "Salt Lake City");
+	Car car2;
+	car2 = car1;
+	car2.output ();
+	// Test the StringOfCar push function.
+	cout << "TEST 2" << endl;
+	StringOfCars string1;
+	input (string1);
+	cout << "STRING 1" << endl;
+	string1.output ();
+	// Test the StringOfCars pop function. 
+	cout << "TEST 3" << endl;
+	Car car3;
+	string1.pop (car3);
+	cout << "CAR 3" << endl;
+	car3.output ();
+	cout << "STRING 1" << endl;
+	string1.output ();
 	system ("pause");
 	return 0;
 }
@@ -88,6 +135,76 @@ void Car::output ()
 		<< setw (16) << left << "destination: " << destination << endl << endl;
 }
 
+/********************* operator= ******************
+** operator over load for Car class assignment =
+**************************************************/
+Car & Car::operator=(const Car & carB)
+{
+	setup (carB.reportingMark, carB.carNumber, carB.kind, carB.loaded, carB.destination);
+
+	return *this;
+}
+
+/**************************************************
+** StringOfCars class method definitions
+**************************************************/
+
+/************* StringOfCars::output ***************
+** Outputs each car data. Prints "NO cars" if
+** StringOfCars is empty.
+**************************************************/
+void StringOfCars::output ()
+{
+	if (carCount > 0)
+	{
+		for (int i = 0; i < carCount; i++)
+		{
+			cout << "Car #" << i + 1 << endl;
+			carArray[i].output ();
+		}
+	}
+	else
+	{
+		cout << "NO cars" << endl;
+	}
+}
+
+/*************** StringOfCars::push ***************
+** Puts a Car into the StringOfCars array
+**************************************************/
+void StringOfCars::push (Car &CarObj)
+{
+	if (carCount < ARRAY_SIZE)
+	{
+		carArray[carCount] = CarObj;
+		carCount++;
+	}
+	else
+	{
+		cout << "string of cars is full";
+		exit (EXIT_FAILURE);
+	}
+}
+
+/*************** StringOfCars::pop ****************
+** Removes the last Car added from the StringOfCars
+** assigns removed Car to the argument
+**************************************************/
+void StringOfCars::pop (Car &CarObj)
+{
+	if (carCount > 0)
+	{
+		CarObj = carArray[carCount - 1];
+		//delete &carArray[carCount - 1];
+		carCount--;
+	}
+	else
+	{
+		cout << "string of cars is empty";
+		exit (EXIT_FAILURE);
+	}
+}
+
 /**************************************************
 ** global function definitions
 **************************************************/
@@ -96,7 +213,7 @@ void Car::output ()
 ** Reads the car data from the text file "data.txt"
 ** Prints data from the file
 **************************************************/
-void input ()
+void input (StringOfCars & StringOfCarsObj)
 {
 	string carType, reportingMarkInit, kindInit, destinationInit, loadedInit;
 	int carNumberInit;
@@ -119,8 +236,8 @@ void input ()
 		if (carType == "Car")
 		{
 			// If the carType is "Car", declare a Car object named temp using the constructor that takes 5 parameters.
-			Car temp (reportingMarkInit, carNumberInit, kindInit, loadedInit=="true"?true:false, destinationInit);
-			temp.output ();
+			Car temp (reportingMarkInit, carNumberInit, kindInit, loadedInit == "true" ? true : false, destinationInit);
+			StringOfCarsObj.push (temp);
 		}
 		// If the carType is not "Car", send an error message and do nothing.
 		else cerr << "Not a car" << endl;
@@ -129,21 +246,56 @@ void input ()
 }
 
 /* Execution results
+TEST 1
+reportingMark:  SP
+carNumber:      34567
+kind:           business
+loaded:         true
+destination:    Salt Lake City
+
+TEST 2
+STRING 1
+Car #1
 reportingMark:  CN
 carNumber:      819481
 kind:           maintenance
 loaded:         false
 destination:    NONE
 
+Car #2
 reportingMark:  SLSF
 carNumber:      46871
 kind:           business
 loaded:         true
 destination:    Memphis
 
+Car #3
 reportingMark:  AOK
 carNumber:      156
 kind:           tender
 loaded:         true
 destination:    McAlester
+
+TEST 3
+CAR 3
+reportingMark:  AOK
+carNumber:      156
+kind:           tender
+loaded:         true
+destination:    McAlester
+
+STRING 1
+Car #1
+reportingMark:  CN
+carNumber:      819481
+kind:           maintenance
+loaded:         false
+destination:    NONE
+
+Car #2
+reportingMark:  SLSF
+carNumber:      46871
+kind:           business
+loaded:         true
+destination:    Memphis
 */
